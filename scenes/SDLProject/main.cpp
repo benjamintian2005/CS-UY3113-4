@@ -23,6 +23,7 @@
 #include "Utility.h"
 #include "Scene.h"
 #include "LevelA.h"
+#include "MenuScene.h"
 
 // ————— CONSTANTS ————— //
 constexpr int WINDOW_WIDTH  = 640,
@@ -48,6 +49,7 @@ enum AppStatus { RUNNING, TERMINATED };
 // ————— GLOBAL VARIABLES ————— //
 Scene *g_current_scene;
 LevelA *g_level_a;
+MenuScene *g_menu_scene;
 
 SDL_Window* g_display_window;
 
@@ -69,7 +71,6 @@ void process_input();
 void update();
 void render();
 void shutdown();
-
 
 void initialise()
 {
@@ -106,10 +107,12 @@ void initialise()
     
     glClearColor(BG_RED, BG_BLUE, BG_GREEN, BG_OPACITY);
     
-    
-    // ————— LEVEL A SETUP ————— //
+    // ————— SCENES ————— //
+    g_menu_scene = new MenuScene();
     g_level_a = new LevelA();
-    switch_to_scene(g_level_a);
+    
+    // Start with menu scene
+    switch_to_scene(g_menu_scene);
     
     // ————— BLENDING ————— //
     glEnable(GL_BLEND);
@@ -118,7 +121,10 @@ void initialise()
 
 void process_input()
 {
-    g_current_scene->get_state().player->set_movement(glm::vec3(0.0f));
+    // Only reset player movement if we're in a scene with a player
+    if (g_current_scene->get_state().player != nullptr) {
+        g_current_scene->get_state().player->set_movement(glm::vec3(0.0f));
+    }
     
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -139,13 +145,11 @@ void process_input()
                         break;
                         
                     case SDLK_SPACE:
-                        // ————— JUMPING ————— //
-                        if (g_current_scene->get_state().player->get_collided_bottom())
-                        {
-                            g_current_scene->get_state().player->jump();
-                            Mix_PlayChannel(-1,  g_current_scene->get_state().jump_sfx, 0);
+                        // Attack with spacebar
+                        if (g_current_scene == g_level_a) {
+                            g_level_a->shoot_projectile();
                         }
-                         break;
+                        break;
                         
                     default:
                         break;
@@ -159,12 +163,25 @@ void process_input()
     // ————— KEY HOLD ————— //
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);
 
-    if (key_state[SDL_SCANCODE_LEFT])        g_current_scene->get_state().player->move_left();
-    else if (key_state[SDL_SCANCODE_RIGHT])  g_current_scene->get_state().player->move_right();
-     
-    if (glm::length( g_current_scene->get_state().player->get_movement()) > 1.0f)
-        g_current_scene->get_state().player->normalise_movement();
- 
+    // Only process movement if we're in the game scene
+    if (g_current_scene == g_level_a && g_current_scene->get_state().player != nullptr) {
+        // Arrow key movement
+        if (key_state[SDL_SCANCODE_LEFT])        g_current_scene->get_state().player->move_left();
+        else if (key_state[SDL_SCANCODE_RIGHT])  g_current_scene->get_state().player->move_right();
+        
+        // WASD movement
+        if (key_state[SDL_SCANCODE_A])           g_current_scene->get_state().player->move_left();
+        else if (key_state[SDL_SCANCODE_D])      g_current_scene->get_state().player->move_right();
+        
+        if (key_state[SDL_SCANCODE_UP])          g_current_scene->get_state().player->move_up();
+        else if (key_state[SDL_SCANCODE_DOWN])   g_current_scene->get_state().player->move_down();
+        
+        if (key_state[SDL_SCANCODE_W])           g_current_scene->get_state().player->move_up();
+        else if (key_state[SDL_SCANCODE_S])      g_current_scene->get_state().player->move_down();
+         
+        if (glm::length(g_current_scene->get_state().player->get_movement()) > 1.0f)
+            g_current_scene->get_state().player->normalise_movement();
+    }
 }
 
 void update()
@@ -186,30 +203,52 @@ void update()
         // ————— UPDATING THE SCENE (i.e. map, character, enemies...) ————— //
         g_current_scene->update(FIXED_TIMESTEP);
         
+        // Check for scene transition
+        if (g_current_scene->get_state().next_scene_id >= 0)
+        {
+            switch (g_current_scene->get_state().next_scene_id)
+            {
+                case 1:
+                    switch_to_scene(g_level_a);
+                    break;
+                    
+                default:
+                    break;
+            }
+        }
+        
         delta_time -= FIXED_TIMESTEP;
     }
     
     g_accumulator = delta_time;
     
-    
     // ————— PLAYER CAMERA ————— //
     g_view_matrix = glm::mat4(1.0f);
     
-    if (g_current_scene->get_state().player->get_position().x > LEVEL1_LEFT_EDGE) {
-        g_view_matrix = glm::translate(g_view_matrix, glm::vec3(-g_current_scene->get_state().player->get_position().x, 3.75, 0));
-    } else {
-        g_view_matrix = glm::translate(g_view_matrix, glm::vec3(-5, 3.75, 0));
+    // Only center camera on player if we're in the game scene and player exists
+    if (g_current_scene == g_level_a && g_current_scene->get_state().player != nullptr)
+    {
+        g_view_matrix = glm::translate(g_view_matrix, glm::vec3(
+            -g_current_scene->get_state().player->get_position().x,
+            -g_current_scene->get_state().player->get_position().y,
+            0.0f
+        ));
     }
 }
 
 void render()
 {
     g_shader_program.set_view_matrix(g_view_matrix);
-    
-    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(g_shader_program.get_program_id());
     
     // ————— RENDERING THE SCENE (i.e. map, character, enemies...) ————— //
     g_current_scene->render(&g_shader_program);
+    
+    // Only render player health bar if we're in the game scene and player exists
+    if (g_current_scene == g_level_a && g_current_scene->get_state().player != nullptr)
+    {
+        g_current_scene->get_state().player->render_health_bar(&g_shader_program);
+    }
     
     SDL_GL_SwapWindow(g_display_window);
 }
@@ -218,8 +257,9 @@ void shutdown()
 {    
     SDL_Quit();
     
-    // ————— DELETING LEVEL A DATA (i.e. map, character, enemies...) ————— //
+    // ————— DELETING SCENE DATA ————— //
     delete g_level_a;
+    delete g_menu_scene;
 }
 
 // ————— GAME LOOP ————— //

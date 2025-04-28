@@ -1,30 +1,48 @@
 #include "LevelA.h"
 #include "Utility.h"
-
+#include "vector"
 #define LEVEL_WIDTH 14
-#define LEVEL_HEIGHT 8
+#define LEVEL_HEIGHT 14  // Make the level square for top-down view
+
+#define ENEMY_COUNT 3 // Increase number of enemies
 
 constexpr char SPRITESHEET_FILEPATH[] = "assets/george_0.png",
            PLATFORM_FILEPATH[]    = "assets/platformPack_tile027.png",
-           ENEMY_FILEPATH[]       = "assets/soph.png";
+           ENEMY_FILEPATH[]       = "assets/soph.png",
+PROJECTILE_FILEPATH[] = "assets/projectile.png";
 
 unsigned int LEVEL_DATA[] =
 {
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
-    3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2,
-    3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 };
+
+
 
 LevelA::~LevelA()
 {
     delete [] m_game_state.enemies;
     delete    m_game_state.player;
     delete    m_game_state.map;
+    
+    // Clean up projectiles
+    for (int i = 0; i < m_game_state.projectiles.size(); i++) {
+        delete m_game_state.projectiles[i];
+    }
+    m_game_state.projectiles.clear();
+    
     Mix_FreeChunk(m_game_state.jump_sfx);
     Mix_FreeMusic(m_game_state.bgm);
 }
@@ -35,6 +53,17 @@ void LevelA::initialise()
     m_game_state.map = new Map(LEVEL_WIDTH, LEVEL_HEIGHT, LEVEL_DATA, map_texture_id, 1.0f, 4, 1);
     
     GLuint player_texture_id = Utility::load_texture(SPRITESHEET_FILEPATH);
+    
+    // Load font texture for health display
+    m_font_texture_id = Utility::load_texture("assets/font1.png");
+
+    // Load projectile texture and verify it loaded correctly
+    GLuint projectile_texture_id = Utility::load_texture(PROJECTILE_FILEPATH);
+    if (projectile_texture_id == 0) {
+        std::cout << "ERROR: Failed to load projectile texture from " << PROJECTILE_FILEPATH << std::endl;
+    } else {
+        std::cout << "Successfully loaded projectile texture with ID: " << projectile_texture_id << std::endl;
+    }
 
     int player_walking_animation[4][4] =
     {
@@ -44,28 +73,31 @@ void LevelA::initialise()
         { 0, 4, 8, 12 }   // for George to move downwards
     };
 
-    glm::vec3 acceleration = glm::vec3(0.0f, -4.81f, 0.0f);
+    // Remove gravity for top-down movement
+    glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
 
     m_game_state.player = new Entity(
         player_texture_id,         // texture id
-        5.0f,                      // speed
-        acceleration,              // acceleration
-        5.0f,                      // jumping power
-        player_walking_animation,  // animation index sets
+        3.0f,                      // speed (adjusted for top-down)
+        acceleration,              // acceleration (no gravity)
         0.0f,                      // animation time
         4,                         // animation frame amount
         0,                         // current animation index
         4,                         // animation column amount
         4,                         // animation row amount
-        1.0f,                      // width
-        1.0f,                       // height
+        1.0f,                      // width (slightly smaller for top-down view)
+        1.0f,                      // height (slightly smaller for top-down view)
         PLAYER
     );
+    m_game_state.player->set_scene(this);
     
-    m_game_state.player->set_position(glm::vec3(5.0f, 0.0f, 0.0f));
+    // Set the walking animation after construction
+    m_game_state.player->set_walking(player_walking_animation);
+    m_game_state.player->face_right(); // Start facing right
+    
+    m_game_state.player->set_position(glm::vec3(5.0f, -2.0f, 0.0f));  // Start more centered
 
-    // Jumping
-    m_game_state.player->set_jumping_power(3.0f);
+    // Remove jumping section since it's not needed for top-down
     
     /**
      Enemies' stuff */
@@ -75,13 +107,21 @@ void LevelA::initialise()
 
     for (int i = 0; i < ENEMY_COUNT; i++)
     {
-    m_game_state.enemies[i] =  Entity(enemy_texture_id, 1.0f, 1.0f, 1.0f, ENEMY, GUARD, IDLE);
+        m_game_state.enemies[i] = Entity(enemy_texture_id, 1.0f, 1.0f, 1.0f, ENEMY, GUARD, IDLE);
+        m_game_state.enemies[i].set_health(2);  // Set enemy health
+        m_game_state.enemies[i].set_scene(this);
     }
 
+    // Position the enemies in different parts of the map
+    m_game_state.enemies[0].set_position(glm::vec3(8.0f, -5.0f, 0.0f));
+    m_game_state.enemies[1].set_position(glm::vec3(3.0f, -10.0f, 0.0f));
+    m_game_state.enemies[2].set_position(glm::vec3(10.0f, -10.0f, 0.0f));
 
-    m_game_state.enemies[0].set_position(glm::vec3(8.0f, 0.0f, 0.0f));
-    m_game_state.enemies[0].set_movement(glm::vec3(0.0f));
-    m_game_state.enemies[0].set_acceleration(glm::vec3(0.0f, -9.81f, 0.0f));
+    // Set movement and acceleration
+    for (int i = 0; i < ENEMY_COUNT; i++) {
+        m_game_state.enemies[i].set_movement(glm::vec3(0.0f));
+        m_game_state.enemies[i].set_acceleration(glm::vec3(0.0f, 0.0f, 0.0f));
+    }  // Remove gravity for enemies too
 
     /**
      BGM and SFX
@@ -103,13 +143,132 @@ void LevelA::update(float delta_time)
     {
         m_game_state.enemies[i].update(delta_time, m_game_state.player, NULL, NULL, m_game_state.map);
     }
+    
+    // Update projectiles
+    for (int i = 0; i < m_game_state.projectiles.size(); i++)
+    {
+        Entity* projectile = m_game_state.projectiles[i];
+        
+        // Call the projectile's update method instead of manually updating position
+        projectile->update(delta_time, m_game_state.player, NULL, NULL, m_game_state.map);
+        
+        // Debug output for projectile position
+        if (i == 0) { // Only print for the first projectile to avoid spam
+            //std::cout << "Projectile position: " << projectile->get_position().x << ", " << projectile->get_position().y << std::endl;
+        }
+        
+        // Check for collisions with enemies
+        for (int j = 0; j < ENEMY_COUNT; j++)
+        {
+            if (projectile->check_collision(&m_game_state.enemies[j]))
+            {
+                // Enemy hit by projectile
+                m_game_state.enemies[j].take_damage(1);
+                
+                // Remove the projectile
+                delete projectile;
+                m_game_state.projectiles.erase(m_game_state.projectiles.begin() + i);
+                i--; // Adjust index since we removed an element
+                break;
+            }
+        }
+        
+        // Check for collisions with platforms
+        if (projectile->has_collided_with_platform())
+        {
+            // Remove the projectile when it hits a platform
+            delete projectile;
+            m_game_state.projectiles.erase(m_game_state.projectiles.begin() + i);
+            i--; // Adjust index since we removed an element
+            continue;
+        }
+        
+        // Check for collisions with map boundaries
+        // If projectile is out of bounds, remove it
+        // Using a larger boundary of 20.0f
+        glm::vec3 position = projectile->get_position();
+        if (position.x < -20.0f || position.x > 20.0f || position.y < -20.0f || position.y > 20.0f)
+        {
+            delete projectile;
+            m_game_state.projectiles.erase(m_game_state.projectiles.begin() + i);
+            i--; // Adjust index since we removed an element
+        }
+    }
 }
-
 
 void LevelA::render(ShaderProgram *g_shader_program)
 {
     m_game_state.map->render(g_shader_program);
     m_game_state.player->render(g_shader_program);
-    for (int i = 0; i < m_number_of_enemies; i++)
-            m_game_state.enemies[i].render(g_shader_program);
+    m_game_state.player->render_health_bar(g_shader_program, m_font_texture_id);
+    
+    for (int i = 0; i < ENEMY_COUNT; i++) {
+        m_game_state.enemies[i].render(g_shader_program);
+        m_game_state.enemies[i].render_health_bar(g_shader_program, m_font_texture_id);
+    }
+    
+    // Render all projectiles
+    // std::cout << "Rendering " << m_game_state.projectiles.size() << " projectiles" << std::endl;
+    for (int i = 0; i < m_game_state.projectiles.size(); i++) {
+        m_game_state.projectiles[i]->render(g_shader_program);
+    }
+}
+
+void LevelA::shoot_projectile()
+{
+    if (m_game_state.projectiles.size() < 100) {
+        // Create projectile on the heap with projectile texture
+        GLuint projectile_texture_id = Utility::load_texture("assets/projectile.png");
+        Entity* projectile = new Entity(projectile_texture_id, 5.0f, 1.0f, 1.0f, PROJECTILE);
+        glm::vec3 player_pos = m_game_state.player->get_position();
+        projectile->set_position(player_pos);
+        
+        // Get player's movement vector to determine direction
+        glm::vec3 player_movement = m_game_state.player->get_movement();
+        
+        // If player is not moving, use the last direction they were facing
+        if (player_movement.x == 0.0f && player_movement.y == 0.0f) {
+            // Check which animation the player is currently using
+            int* player_animation = m_game_state.player->get_animation_indices();
+            
+            // Compare with the walking animations for each direction
+            // We need to compare the first element of the animation array
+            if (player_animation[0] == m_game_state.player->get_walking_animation(RIGHT, 0)) {
+                player_movement = glm::vec3(1.0f, 0.0f, 0.0f);
+            } else if (player_animation[0] == m_game_state.player->get_walking_animation(LEFT, 0)) {
+                player_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
+            } else if (player_animation[0] == m_game_state.player->get_walking_animation(UP, 0)) {
+                player_movement = glm::vec3(0.0f, 1.0f, 0.0f);
+            } else if (player_animation[0] == m_game_state.player->get_walking_animation(DOWN, 0)) {
+                player_movement = glm::vec3(0.0f, -1.0f, 0.0f);
+            } else {
+                // Default to right if no direction can be determined
+                player_movement = glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+        }
+        
+        // Set the projectile's movement to match the player's direction
+        projectile->set_movement(player_movement);
+        
+        // Set rotation based on direction
+        if (player_movement.x > 0.0f) {
+            // Right - no rotation needed
+            projectile->set_rotation(0.0f);
+            projectile->set_scale(glm::vec3(1.0f, 1.0f, 1.0f));
+        } else if (player_movement.x < 0.0f) {
+            // Left - flip horizontally
+            projectile->set_rotation(0.0f);
+            projectile->set_scale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        } else if (player_movement.y > 0.0f) {
+            // Up - rotate 90 degrees counterclockwise
+            projectile->set_rotation(90.0f);
+            projectile->set_scale(glm::vec3(1.0f, 1.0f, 1.0f));
+        } else if (player_movement.y < 0.0f) {
+            // Down - rotate 90 degrees clockwise
+            projectile->set_rotation(-90.0f);
+            projectile->set_scale(glm::vec3(1.0f, 1.0f, 1.0f));
+        }
+        
+        m_game_state.projectiles.push_back(projectile);
+    }
 }

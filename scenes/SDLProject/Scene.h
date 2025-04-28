@@ -15,6 +15,7 @@
 #include "Util.h"
 #include "Entity.h"
 #include "Map.h"
+#include <vector>
 
 /**
     Notice that the game's state is now part of the Scene class, not the main file.
@@ -25,6 +26,7 @@ struct GameState
     Map *map;
     Entity *player;
     Entity *enemies;
+    std::vector<Entity*> projectiles; // Vector to store projectiles
     
     // ————— AUDIO ————— //
     Mix_Music *bgm;

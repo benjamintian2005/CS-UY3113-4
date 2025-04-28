@@ -4,9 +4,15 @@
 #include "Map.h"
 #include "glm/glm.hpp"
 #include "ShaderProgram.h"
-enum EntityType { PLATFORM, PLAYER, ENEMY  };
+#include "Utility.h"
+
+class Scene; // Forward declaration
+
+enum EntityType { PLATFORM, PLAYER, ENEMY, PROJECTILE };
 enum AIType     { WALKER, GUARD            };
 enum AIState    { WALKING, IDLE, ATTACKING };
+enum EntityState    { WALK, IDLES, ATTACK };
+
 
 
 enum AnimationDirection { LEFT, RIGHT, UP, DOWN };
@@ -18,6 +24,11 @@ private:
     
     int m_walking[4][4]; // 4x4 array for walking animations
 
+    EntityState m_state = IDLES;
+    float m_attack_cooldown = 0.0f;
+    bool m_is_attacking = false;
+    float m_attack_timer = 0.0f;
+    int m_health = 1000;
     
     EntityType m_entity_type;
     AIType     m_ai_type;
@@ -30,12 +41,10 @@ private:
     glm::vec3 m_acceleration;
 
     glm::mat4 m_model_matrix;
+    float m_rotation = 0.0f; // Rotation in degrees
 
-    float     m_speed,
-              m_jumping_power;
+    float     m_speed;
     
-    bool m_is_jumping;
-
     // ————— TEXTURES ————— //
     GLuint    m_texture_id;
 
@@ -56,13 +65,15 @@ private:
     bool m_collided_left   = false;
     bool m_collided_right  = false;
 
+    Scene* m_scene = nullptr; // Pointer to the scene this entity belongs to
+
 public:
     // ————— STATIC VARIABLES ————— //
     static constexpr int SECONDS_PER_FRAME = 4;
 
     // ————— METHODS ————— //
     Entity();
-    Entity(GLuint texture_id, float speed, glm::vec3 acceleration, float jump_power, int walking[4][4], float animation_time,
+    Entity(GLuint texture_id, float speed, glm::vec3 acceleration, float animation_time,
         int animation_frames, int animation_index, int animation_cols,
            int animation_rows, float width, float height, EntityType EntityType);
     Entity(GLuint texture_id, float speed, float width, float height, EntityType EntityType); // Simpler constructor
@@ -81,6 +92,7 @@ public:
     
     void update(float delta_time, Entity *player, Entity *collidable_entities, int collidable_entity_count, Map *map);
     void render(ShaderProgram* program);
+    void render_health_bar(ShaderProgram* program, GLuint font_texture_id);
 
     void ai_activate(Entity *player);
     void ai_walk();
@@ -98,13 +110,19 @@ public:
     void move_up() { m_movement.y = 1.0f;  face_up(); }
     void move_down() { m_movement.y = -1.0f; face_down(); }
     
-    void const jump() { m_is_jumping = true; }
-
+    //Atack stuff//
+    void attack();
+    bool is_attacking() const { return m_is_attacking; }
+    void take_damage(int damage);
+    bool is_alive() const { return m_health > 0; }
+    int get_health() const { return m_health; }
+    void set_health(int health) { m_health = health; }
+    void update_attack(float delta_time);
+    
     // ————— GETTERS ————— //
     EntityType const get_entity_type()    const { return m_entity_type;   };
     AIType     const get_ai_type()        const { return m_ai_type;       };
     AIState    const get_ai_state()       const { return m_ai_state;      };
-    float const get_jumping_power() const { return m_jumping_power; }
     glm::vec3 const get_position()     const { return m_position; }
     glm::vec3 const get_velocity()     const { return m_velocity; }
     glm::vec3 const get_acceleration() const { return m_acceleration; }
@@ -116,9 +134,15 @@ public:
     bool      const get_collided_bottom() const { return m_collided_bottom; }
     bool      const get_collided_right() const { return m_collided_right; }
     bool      const get_collided_left() const { return m_collided_left; }
+    int*      const get_animation_indices() const { return m_animation_indices; }
+    int       const get_animation_index() const { return m_animation_index; }
+    int       const get_walking_animation(int direction, int frame) const { return m_walking[direction][frame]; }
+    bool      const has_collided_with_platform() const { return m_collided_top || m_collided_bottom || m_collided_left || m_collided_right; }
+    float     const get_rotation() const { return m_rotation; }
     
     void activate()   { m_is_active = true;  };
     void deactivate() { m_is_active = false; };
+    bool is_active() const { return m_is_active; }
     // ————— SETTERS ————— //
     void const set_entity_type(EntityType new_entity_type)  { m_entity_type = new_entity_type;};
     void const set_ai_type(AIType new_ai_type){ m_ai_type = new_ai_type;};
@@ -135,9 +159,9 @@ public:
     void const set_animation_frames(int new_frames) { m_animation_frames = new_frames; }
     void const set_animation_index(int new_index) { m_animation_index = new_index; }
     void const set_animation_time(float new_time) { m_animation_time = new_time; }
-    void const set_jumping_power(float new_jumping_power) { m_jumping_power = new_jumping_power;}
     void const set_width(float new_width) {m_width = new_width; }
     void const set_height(float new_height) {m_height = new_height; }
+    void const set_rotation(float new_rotation) { m_rotation = new_rotation; }
 
     // Setter for m_walking
     void set_walking(int walking[4][4])
@@ -150,6 +174,10 @@ public:
             }
         }
     }
+
+    // Scene pointer getter and setter
+    Scene* get_scene() const { return m_scene; }
+    void set_scene(Scene* scene) { m_scene = scene; }
 };
 
 #endif // ENTITY_H
