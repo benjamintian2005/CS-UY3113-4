@@ -23,33 +23,46 @@
 #include "Utility.h"
 #include "Scene.h"
 #include "LevelA.h"
-#include "MenuScene.h"
+#include "LevelB.h"
+#include "LevelC.h"
+#include "GameOver.h"
+
+
+#include "Menu.h"
 
 // ————— CONSTANTS ————— //
 constexpr int WINDOW_WIDTH  = 640,
           WINDOW_HEIGHT = 480;
 
-constexpr float BG_RED     = 0.1922f,
-            BG_BLUE    = 0.549f,
-            BG_GREEN   = 0.9059f,
-            BG_OPACITY = 1.0f;
+constexpr float BG_RED     = 0.08f,    // Minimal red
+            BG_GREEN   = 0.04f,    // Minimal green
+            BG_BLUE    = 0.01f,    // Barely any blue
+            BG_OPACITY = 1.0f;     // Keep fully opaque
 
 constexpr int VIEWPORT_X = 0,
           VIEWPORT_Y = 0,
           VIEWPORT_WIDTH  = WINDOW_WIDTH,
           VIEWPORT_HEIGHT = WINDOW_HEIGHT;
 
-constexpr char V_SHADER_PATH[] = "shaders/vertex_textured.glsl",
-           F_SHADER_PATH[] = "shaders/fragment_textured.glsl";
+constexpr char V_SHADER_PATH[] = "shaders/vertex_lit.glsl",
+           F_SHADER_PATH[] = "shaders/fragment_lit.glsl";
 
 constexpr float MILLISECONDS_IN_SECOND = 1000.0;
 
 enum AppStatus { RUNNING, TERMINATED };
+enum GameMode { MENU, GAME };
 
 // ————— GLOBAL VARIABLES ————— //
+GameMode g_current_mode = MENU;
 Scene *g_current_scene;
 LevelA *g_level_a;
-MenuScene *g_menu_scene;
+LevelB *g_level_b;
+LevelC *g_level_c;
+GameOver *g_game_over_lose;
+GameOver *g_game_over_win;
+
+
+Menu *g_menu_scene;
 
 SDL_Window* g_display_window;
 
@@ -108,8 +121,15 @@ void initialise()
     glClearColor(BG_RED, BG_BLUE, BG_GREEN, BG_OPACITY);
     
     // ————— SCENES ————— //
-    g_menu_scene = new MenuScene();
+    g_menu_scene = new Menu();
     g_level_a = new LevelA();
+    g_level_b = new LevelB();
+    g_level_c = new LevelC();
+    
+    g_game_over_lose = new GameOver(false);
+    g_game_over_win = new GameOver(true);
+    
+    
     
     // Start with menu scene
     switch_to_scene(g_menu_scene);
@@ -143,11 +163,17 @@ void process_input()
                         // Quit the game with a keystroke
                         g_app_status = TERMINATED;
                         break;
-                        
+                    case SDLK_RETURN:
+                        // Switch to game mode if in menu
+                        if (g_current_mode == MENU) {
+                            g_current_mode = GAME;
+                            switch_to_scene(g_level_a);
+                        }
+                        break;
                     case SDLK_SPACE:
                         // Attack with spacebar
-                        if (g_current_scene == g_level_a) {
-                            g_level_a->shoot_projectile();
+                        if (g_current_scene != g_menu_scene) {
+                            g_current_scene->shoot_projectile();
                         }
                         break;
                         
@@ -164,7 +190,7 @@ void process_input()
     const Uint8 *key_state = SDL_GetKeyboardState(NULL);
 
     // Only process movement if we're in the game scene
-    if (g_current_scene == g_level_a && g_current_scene->get_state().player != nullptr) {
+    if (g_current_scene != g_menu_scene && g_current_scene->get_state().player != nullptr) {
         // Arrow key movement
         if (key_state[SDL_SCANCODE_LEFT])        g_current_scene->get_state().player->move_left();
         else if (key_state[SDL_SCANCODE_RIGHT])  g_current_scene->get_state().player->move_right();
@@ -203,19 +229,7 @@ void update()
         // ————— UPDATING THE SCENE (i.e. map, character, enemies...) ————— //
         g_current_scene->update(FIXED_TIMESTEP);
         
-        // Check for scene transition
-        if (g_current_scene->get_state().next_scene_id >= 0)
-        {
-            switch (g_current_scene->get_state().next_scene_id)
-            {
-                case 1:
-                    switch_to_scene(g_level_a);
-                    break;
-                    
-                default:
-                    break;
-            }
-        }
+        
         
         delta_time -= FIXED_TIMESTEP;
     }
@@ -226,7 +240,7 @@ void update()
     g_view_matrix = glm::mat4(1.0f);
     
     // Only center camera on player if we're in the game scene and player exists
-    if (g_current_scene == g_level_a && g_current_scene->get_state().player != nullptr)
+    if (g_current_scene != g_menu_scene && g_current_scene->get_state().player != nullptr)
     {
         g_view_matrix = glm::translate(g_view_matrix, glm::vec3(
             -g_current_scene->get_state().player->get_position().x,
@@ -234,20 +248,58 @@ void update()
             0.0f
         ));
     }
+    if (g_current_scene->get_state().player != nullptr && g_current_mode == GAME) {
+            if (g_current_scene->get_state().player->get_health() <= 0) {
+                        
+                        switch_to_scene(g_game_over_lose);
+            }
+            else
+            {
+                if (g_current_scene == g_level_a && ((LevelA*)g_current_scene)->is_completed()) {
+                    
+                    switch_to_scene(g_level_b);  // Move to Level B
+                }
+                else if (g_current_scene == g_level_b && ((LevelB*)g_current_scene)->is_completed()) {
+                    switch_to_scene(g_level_c);
+                }
+                else if (g_current_scene == g_level_c && ((LevelC*)g_current_scene)->is_completed()) {
+                    // Game finished - back to menu or show victory screen
+                   
+                    switch_to_scene(g_game_over_win);
+                }
+            }
+        }
+    if(g_current_scene!= g_menu_scene && g_current_scene!= g_game_over_win && g_current_scene!= g_game_over_lose)
+    {
+        
+        g_shader_program.set_light_position_matrix(g_current_scene->get_state().player->get_position());
+    }
+    else
+    {
+        glm::vec3 default_light_pos = glm::vec3(0.0f, 0.0f, 0.0f);  // Center of the screen
+                g_shader_program.set_light_position_matrix(default_light_pos);
+    }
 }
 
 void render()
 {
+   
     g_shader_program.set_view_matrix(g_view_matrix);
+    glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(g_shader_program.get_program_id());
+
     
     // ————— RENDERING THE SCENE (i.e. map, character, enemies...) ————— //
-    g_current_scene->render(&g_shader_program);
     
+    
+    
+    
+    g_current_scene->render(&g_shader_program);
+
     // Only render player health bar if we're in the game scene and player exists
     if (g_current_scene == g_level_a && g_current_scene->get_state().player != nullptr)
     {
-        g_current_scene->get_state().player->render_health_bar(&g_shader_program);
+       // g_current_scene->get_state().player->render_health_bar(&g_shader_program, );
     }
     
     SDL_GL_SwapWindow(g_display_window);
@@ -259,6 +311,7 @@ void shutdown()
     
     // ————— DELETING SCENE DATA ————— //
     delete g_level_a;
+    delete g_level_b;
     delete g_menu_scene;
 }
 

@@ -9,7 +9,7 @@
 class Scene; // Forward declaration
 
 enum EntityType { PLATFORM, PLAYER, ENEMY, PROJECTILE };
-enum AIType     { WALKER, GUARD            };
+enum AIType     { WALKER, GUARD, BOSS1, BOSS2};
 enum AIState    { WALKING, IDLE, ATTACKING };
 enum EntityState    { WALK, IDLES, ATTACK };
 
@@ -22,7 +22,7 @@ class Entity
 private:
     bool m_is_active = true;
     
-    int m_walking[4][4]; // 4x4 array for walking animations
+    int m_walking[4][7]; // 4x4 array for walking animations
 
     EntityState m_state = IDLES;
     float m_attack_cooldown = 0.0f;
@@ -97,6 +97,9 @@ public:
     void ai_activate(Entity *player);
     void ai_walk();
     void ai_guard(Entity *player);
+    void ai_boss1(Entity *player);
+    void ai_boss2(Entity *player);
+
     
     void normalise_movement() { m_movement = glm::normalize(m_movement); }
 
@@ -164,11 +167,11 @@ public:
     void const set_rotation(float new_rotation) { m_rotation = new_rotation; }
 
     // Setter for m_walking
-    void set_walking(int walking[4][4])
+    void set_walking(int walking[4][7])
     {
         for (int i = 0; i < 4; ++i)
         {
-            for (int j = 0; j < 4; ++j)
+            for (int j = 0; j < 7; ++j)
             {
                 m_walking[i][j] = walking[i][j];
             }

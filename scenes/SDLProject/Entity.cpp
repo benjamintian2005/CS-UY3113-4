@@ -27,7 +27,12 @@ void Entity::ai_activate(Entity *player)
         case GUARD:
             ai_guard(player);
             break;
-            
+        case BOSS1:
+            ai_boss1(player);
+            break;
+        case BOSS2:
+            ai_boss2(player);
+            break;
         default:
             break;
     }
@@ -81,6 +86,167 @@ void Entity::ai_guard(Entity *player)
         default: {
             break;
         }
+    }
+}
+
+void Entity::ai_boss1(Entity *player)
+{
+    if (player) {
+        // Calculate direction vector from boss to player
+        float dx = player->get_position().x - m_position.x;
+        float dy = player->get_position().y - m_position.y;
+        
+        // Calculate distance to player
+        float distance = glm::distance(m_position, player->get_position());
+        
+        // Determine sped based on distance
+        float current_speed_multiplier;
+        
+        if (distance > 2.0f) {
+            // Speed up when far away (>6.0f)
+            current_speed_multiplier = 10.0f;
+        } else if (distance < 1.5f) {
+            // Slow down when very close (<1.5f)
+            current_speed_multiplier = 0.5f;
+        } else {
+            // Normal speed at medium distances
+            current_speed_multiplier = 1.0f;
+        }
+        
+        // Only proceed if player is not at the same position
+        if (distance > 0.1f) {
+            // Normalized direction vector
+            float dirX = dx / distance;
+            float dirY = dy / distance;
+            
+            // Apply speed multiplier
+            m_movement = glm::vec3(dirX * current_speed_multiplier, dirY * current_speed_multiplier, 0.0f);
+            
+            // Update facing direction based on movement
+            if (fabs(dirX) > fabs(dirY)) {
+                // Horizontal movement is dominant
+                if (dirX > 0) {
+                    face_right();
+                } else {
+                    face_left();
+                }
+            } else {
+                // Vertical movement is dominant
+                if (dirY > 0) {
+                    face_up();
+                } else {
+                    face_down();
+                }
+            }
+        } else {
+            // Player is very close, stop moving
+            m_movement = glm::vec3(0.0f);
+        }
+    }
+}
+
+void Entity::ai_boss2(Entity *player)
+{
+    // Directions: 0 = right, 1 = left, 2 = up, 3 = down
+    const float CHARGE_SPEED = 5.0f;         // Standard charge speed
+    const float BURST_SPEED = 8.0f;          // Occasional speed bursts
+    const float DIRECTION_CHANGE_CHANCE = 0.02f;  // 2% chance per frame to change direction
+    
+    // Check if we're not moving at all (initial state)
+    bool not_moving = (fabs(m_movement.x) < 0.01f && fabs(m_movement.y) < 0.01f);
+    
+    // Random direction change based on probability
+    bool random_direction_change = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) < DIRECTION_CHANGE_CHANCE;
+    
+    // Determine if we should change direction
+    bool should_change_direction =
+        m_collided_left ||
+        m_collided_right ||
+        m_collided_top ||
+        m_collided_bottom ||
+        not_moving ||
+        random_direction_change;
+    
+    if (should_change_direction) {
+        // Choose a random direction
+        int new_direction = rand() % 4;
+        
+        // Make sure we don't pick the same direction if we just collided
+        if (m_collided_right && new_direction == 0) new_direction = 1;    // Don't go right if we hit right
+        if (m_collided_left && new_direction == 1) new_direction = 0;     // Don't go left if we hit left
+        if (m_collided_top && new_direction == 2) new_direction = 3;      // Don't go up if we hit top
+        if (m_collided_bottom && new_direction == 3) new_direction = 2;   // Don't go down if we hit bottom
+        
+        // Add some variation to movement patterns
+        // 10% chance to do a diagonal movement
+        bool diagonal_movement = (rand() % 10 == 0);
+        
+        // Set movement vector based on direction
+        switch (new_direction) {
+            case 0:  // Right
+                if (diagonal_movement) {
+                    // Diagonal up-right or down-right
+                    m_movement = glm::vec3(0.7f, (rand() % 2 == 0) ? 0.7f : -0.7f, 0.0f);
+                } else {
+                    m_movement = glm::vec3(1.0f, 0.0f, 0.0f);
+                }
+                face_right();
+                break;
+            case 1:  // Left
+                if (diagonal_movement) {
+                    // Diagonal up-left or down-left
+                    m_movement = glm::vec3(-0.7f, (rand() % 2 == 0) ? 0.7f : -0.7f, 0.0f);
+                } else {
+                    m_movement = glm::vec3(-1.0f, 0.0f, 0.0f);
+                }
+                face_left();
+                break;
+            case 2:  // Up
+                if (diagonal_movement) {
+                    // Diagonal up-right or up-left
+                    m_movement = glm::vec3((rand() % 2 == 0) ? 0.7f : -0.7f, 0.7f, 0.0f);
+                } else {
+                    m_movement = glm::vec3(0.0f, 1.0f, 0.0f);
+                }
+                face_up();
+                break;
+            case 3:  // Down
+                if (diagonal_movement) {
+                    // Diagonal down-right or down-left
+                    m_movement = glm::vec3((rand() % 2 == 0) ? 0.7f : -0.7f, -0.7f, 0.0f);
+                } else {
+                    m_movement = glm::vec3(0.0f, -1.0f, 0.0f);
+                }
+                face_down();
+                break;
+        }
+        
+        // Normalize the movement vector for consistent speed
+        float length = sqrt(m_movement.x * m_movement.x + m_movement.y * m_movement.y);
+        if (length > 0) {
+            m_movement.x /= length;
+            m_movement.y /= length;
+        }
+        
+        // Random chance for speed variation (20% chance for a speed burst)
+        m_speed = (rand() % 5 == 0) ? BURST_SPEED : CHARGE_SPEED;
+        
+        // Reset collision flags after handling them
+        m_collided_left = false;
+        m_collided_right = false;
+        m_collided_top = false;
+        m_collided_bottom = false;
+    }
+    
+    // Small chance to adjust speed during movement (without changing direction)
+    if (rand() % 100 < 5) {  // 5% chance per frame
+        // Random speed between 70% and 130% of base speed
+        float speed_variation = 0.7f + (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) * 0.6f;
+        m_speed *= speed_variation;
+        
+        // Clamp speed to reasonable range
+        if (m_speed < 2.0f) m_speed = 2.0f;
+        if (m_speed > 10.0f) m_speed = 10.0f;
     }
 }
 
@@ -186,26 +352,30 @@ void const Entity::check_collision_y(Entity *collidable_entities, int collidable
     {
         Entity *collidable_entity = &collidable_entities[i];
         
-        if (check_collision(collidable_entity))
+        if (collidable_entity->is_active() and check_collision(collidable_entity))
         {
-            if(collidable_entity->m_entity_type == ENEMY and m_entity_type == PLAYER)
+            
+            if(collidable_entity->is_active() and collidable_entity->m_entity_type == ENEMY and m_entity_type == PLAYER)
             {
                 take_damage(1);
             }
-            float y_distance = fabs(m_position.y - collidable_entity->m_position.y);
-            float y_overlap = fabs(y_distance - (m_height / 2.0f) - (collidable_entity->m_height / 2.0f));
-            
-            if (m_position.y > collidable_entity->m_position.y)
+            else
             {
-                m_position.y += y_overlap;
-                m_velocity.y = 0;
-                m_collided_bottom = true;
-            }
-            else if (m_position.y < collidable_entity->m_position.y)
-            {
-                m_position.y -= y_overlap;
-                m_velocity.y = 0;
-                m_collided_top = true;
+                float y_distance = fabs(m_position.y - collidable_entity->m_position.y);
+                float y_overlap = fabs(y_distance - (m_height / 2.0f) - (collidable_entity->m_height / 2.0f));
+                
+                if (m_position.y > collidable_entity->m_position.y)
+                {
+                    m_position.y += y_overlap;
+                    m_velocity.y = 0;
+                    m_collided_bottom = true;
+                }
+                else if (m_position.y < collidable_entity->m_position.y)
+                {
+                    m_position.y -= y_overlap;
+                    m_velocity.y = 0;
+                    m_collided_top = true;
+                }
             }
         }
     }
@@ -217,26 +387,29 @@ void const Entity::check_collision_x(Entity *collidable_entities, int collidable
     {
         Entity *collidable_entity = &collidable_entities[i];
         
-        if (check_collision(collidable_entity))
+        if (collidable_entity->is_active() and check_collision(collidable_entity))
         {
-            if(collidable_entity->m_entity_type == ENEMY and m_entity_type == PLAYER)
+            if(collidable_entity->is_active() and collidable_entity->m_entity_type == ENEMY and m_entity_type == PLAYER)
             {
                 take_damage(1);
             }
-            float x_distance = fabs(m_position.x - collidable_entity->m_position.x);
-            float x_overlap = fabs(x_distance - (m_width / 2.0f) - (collidable_entity->m_width / 2.0f));
-            
-            if (m_position.x > collidable_entity->m_position.x)
+            else
             {
-                m_position.x += x_overlap;
-                m_velocity.x = 0;
-                m_collided_left = true;
-            }
-            else if (m_position.x < collidable_entity->m_position.x)
-            {
-                m_position.x -= x_overlap;
-                m_velocity.x = 0;
-                m_collided_right = true;
+                float x_distance = fabs(m_position.x - collidable_entity->m_position.x);
+                float x_overlap = fabs(x_distance - (m_width / 2.0f) - (collidable_entity->m_width / 2.0f));
+                
+                if (m_position.x > collidable_entity->m_position.x)
+                {
+                    m_position.x += x_overlap;
+                    m_velocity.x = 0;
+                    m_collided_left = true;
+                }
+                else if (m_position.x < collidable_entity->m_position.x)
+                {
+                    m_position.x -= x_overlap;
+                    m_velocity.x = 0;
+                    m_collided_right = true;
+                }
             }
         }
     }
@@ -333,14 +506,10 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
 
     // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
     
-    if (m_entity_type == ENEMY) ai_activate(player);
     
     // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
     
-    // Apply friction to slow down movement
-    if (glm::length(m_movement) > 0) {
-        m_movement = glm::normalize(m_movement);
-    }
+    
     
     // Add movement to velocity
     m_velocity = m_movement * m_speed;
@@ -365,10 +534,9 @@ void Entity::update(float delta_time, Entity *player, Entity *collidable_entitie
         check_collision_y(collidable_entities, collidable_entity_count);
     }
     
-    // Reset movement for next frame, but not for projectiles
-    if (m_entity_type != PROJECTILE) {
-        m_movement = glm::vec3(0.0f);
-    }
+    if (m_entity_type == ENEMY) ai_activate(player);
+
+    
 
     // ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– //
     
@@ -426,17 +594,7 @@ void Entity::render(ShaderProgram* program)
     // Set the model matrix before rendering
     program->set_model_matrix(m_model_matrix);
     
-    // Debug print for projectiles
-    if (m_entity_type == PROJECTILE) {
-        //std::cout << "Rendering projectile at position: (" << m_position.x << ", " << m_position.y << ")" << std::endl;
-        //std::cout << "Projectile model matrix: " << std::endl;
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                //std::cout << m_model_matrix[i][j] << " ";
-            }
-            //std::cout << std::endl;
-        }
-    }
+   
 
     if (m_animation_indices != nullptr && m_animation_index >= 0 && m_animation_index < m_animation_frames)
     {

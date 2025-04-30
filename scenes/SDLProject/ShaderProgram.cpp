@@ -2,9 +2,20 @@
 
 #include "ShaderProgram.h"
 
+
+
+
+void ShaderProgram::set_light_position_matrix(glm::vec3 position)
+{
+    glUseProgram(m_program_id);
+    glUniform2f(m_light_position_uniform, position.x, position.y);
+}
+
 void ShaderProgram::load(const char *vertex_shader_file, const char *fragment_shader_file) {
     
+    
     // create the vertex shader
+    
     m_vertex_shader   = load_shader_from_file(vertex_shader_file, GL_VERTEX_SHADER);
     // create the fragment shader
     m_fragment_shader = load_shader_from_file(fragment_shader_file, GL_FRAGMENT_SHADER);

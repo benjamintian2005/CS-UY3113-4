@@ -13,6 +13,10 @@
 		849F079B2888D13900816376 /* Utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 849F07992888D13900816376 /* Utility.cpp */; };
 		849F079E2888DDF200816376 /* Scene.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 849F079C2888DDF200816376 /* Scene.cpp */; };
 		849F07A12888DF1D00816376 /* LevelA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 849F079F2888DF1D00816376 /* LevelA.cpp */; };
+		D7294B3F2DC02ECF005DA17B /* Menu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7294B3E2DC02ECF005DA17B /* Menu.cpp */; };
+		D7AA12902DC0467D00FD1DB6 /* LevelB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7AA128F2DC0467D00FD1DB6 /* LevelB.cpp */; };
+		D7AA12932DC04B0300FD1DB6 /* LevelC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7AA12912DC04B0300FD1DB6 /* LevelC.cpp */; };
+		D7AA12962DC04DD400FD1DB6 /* GameOver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7AA12942DC04DD400FD1DB6 /* GameOver.cpp */; };
 		DBDF1B532323DE3F007CECB1 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DBDF1B522323DE3F007CECB1 /* main.cpp */; };
 		DBDF1B5E2323DE8D007CECB1 /* ShaderProgram.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DBDF1B5D2323DE8D007CECB1 /* ShaderProgram.cpp */; };
 		DBDF1B612323DE9E007CECB1 /* shaders in CopyFiles */ = {isa = PBXBuildFile; fileRef = DBDF1B5C2323DE8D007CECB1 /* shaders */; };
@@ -49,6 +53,14 @@
 		849F079D2888DDF200816376 /* Scene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Scene.h; sourceTree = "<group>"; };
 		849F079F2888DF1D00816376 /* LevelA.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LevelA.cpp; sourceTree = "<group>"; };
 		849F07A02888DF1D00816376 /* LevelA.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LevelA.h; sourceTree = "<group>"; };
+		D7294B3D2DC02E9E005DA17B /* Menu.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Menu.h; sourceTree = "<group>"; };
+		D7294B3E2DC02ECF005DA17B /* Menu.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Menu.cpp; sourceTree = "<group>"; };
+		D7AA128E2DC0467700FD1DB6 /* LevelB.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LevelB.h; sourceTree = "<group>"; };
+		D7AA128F2DC0467D00FD1DB6 /* LevelB.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LevelB.cpp; sourceTree = "<group>"; };
+		D7AA12912DC04B0300FD1DB6 /* LevelC.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LevelC.cpp; sourceTree = "<group>"; };
+		D7AA12922DC04B0300FD1DB6 /* LevelC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LevelC.h; sourceTree = "<group>"; };
+		D7AA12942DC04DD400FD1DB6 /* GameOver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GameOver.cpp; sourceTree = "<group>"; };
+		D7AA12952DC04DD400FD1DB6 /* GameOver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameOver.h; sourceTree = "<group>"; };
 		DBDF1B4F2323DE3F007CECB1 /* SDLProject */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SDLProject; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBDF1B522323DE3F007CECB1 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		DBDF1B592323DE8D007CECB1 /* ShaderProgram.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderProgram.h; sourceTree = "<group>"; };
@@ -108,14 +120,22 @@
 				DBDF1B522323DE3F007CECB1 /* main.cpp */,
 				8493D151286BFEC300217CD6 /* Entity.cpp */,
 				8493D152286BFEC300217CD6 /* Entity.h */,
+				D7AA128F2DC0467D00FD1DB6 /* LevelB.cpp */,
 				8401114428864A3000A4D23F /* Map.cpp */,
 				8401114528864A3000A4D23F /* Map.h */,
+				D7AA128E2DC0467700FD1DB6 /* LevelB.h */,
 				849F07992888D13900816376 /* Utility.cpp */,
 				849F079A2888D13900816376 /* Utility.h */,
 				849F079C2888DDF200816376 /* Scene.cpp */,
 				849F079D2888DDF200816376 /* Scene.h */,
 				849F079F2888DF1D00816376 /* LevelA.cpp */,
 				849F07A02888DF1D00816376 /* LevelA.h */,
+				D7294B3D2DC02E9E005DA17B /* Menu.h */,
+				D7294B3E2DC02ECF005DA17B /* Menu.cpp */,
+				D7AA12922DC04B0300FD1DB6 /* LevelC.h */,
+				D7AA12912DC04B0300FD1DB6 /* LevelC.cpp */,
+				D7AA12952DC04DD400FD1DB6 /* GameOver.h */,
+				D7AA12942DC04DD400FD1DB6 /* GameOver.cpp */,
 			);
 			path = SDLProject;
 			sourceTree = "<group>";
@@ -190,10 +210,14 @@
 			files = (
 				849F079B2888D13900816376 /* Utility.cpp in Sources */,
 				849F079E2888DDF200816376 /* Scene.cpp in Sources */,
+				D7AA12962DC04DD400FD1DB6 /* GameOver.cpp in Sources */,
 				DBDF1B532323DE3F007CECB1 /* main.cpp in Sources */,
 				8401114628864A3000A4D23F /* Map.cpp in Sources */,
+				D7AA12932DC04B0300FD1DB6 /* LevelC.cpp in Sources */,
 				849F07A12888DF1D00816376 /* LevelA.cpp in Sources */,
 				DBDF1B5E2323DE8D007CECB1 /* ShaderProgram.cpp in Sources */,
+				D7AA12902DC0467D00FD1DB6 /* LevelB.cpp in Sources */,
+				D7294B3F2DC02ECF005DA17B /* Menu.cpp in Sources */,
 				8493D153286BFEC300217CD6 /* Entity.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

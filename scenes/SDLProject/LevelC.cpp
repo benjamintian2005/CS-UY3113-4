@@ -1,17 +1,17 @@
-#include "LevelA.h"
+#include "LevelC.h"
 #include "Utility.h"
 #include "vector"
-#define LEVEL_WIDTH 14
-#define LEVEL_HEIGHT 14  // Make the level square for top-down view
+#define LEVEL_C_WIDTH 14
+#define LEVEL_C_HEIGHT 14  // Make the level square for top-down view
 
-#define ENEMY_COUNT 3 // Increase number of enemies
+#define ENEMY_C_COUNT 3 // Increase number of enemies
 
-constexpr char SPRITESHEET_FILEPATH[] = "assets/armyman.png",
-           PLATFORM_FILEPATH[]    = "assets/platformPack_tile027.png",
-           ENEMY_FILEPATH[]       = "assets/goonman.png",
-PROJECTILE_FILEPATH[] = "assets/projectile.png";
+constexpr char SPRITESHEET_C_FILEPATH[] = "assets/armyman.png",
+           PLATFORM_C_FILEPATH[]    = "assets/platformPack_tile027.png",
+           ENEMY_C_FILEPATH[]       = "assets/creepyman.png",
+PROJECTILE_C_FILEPATH[] = "assets/projectile.png";
 
-unsigned int LEVEL_DATA[] =
+unsigned int LEVEL_C_DATA[] =
 {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
@@ -31,7 +31,7 @@ unsigned int LEVEL_DATA[] =
 
 
 
-LevelA::~LevelA()
+LevelC::~LevelC()
 {
     delete [] m_game_state.enemies;
     delete    m_game_state.player;
@@ -47,31 +47,33 @@ LevelA::~LevelA()
     Mix_FreeMusic(m_game_state.bgm);
 }
 
-void LevelA::initialise()
+void LevelC::initialise()
 {
     GLuint map_texture_id = Utility::load_texture("assets/world_tileset.png");
-    m_game_state.map = new Map(LEVEL_WIDTH, LEVEL_HEIGHT, LEVEL_DATA, map_texture_id, 1.0f, 16, 16);
+    m_game_state.map = new Map(LEVEL_C_WIDTH, LEVEL_C_HEIGHT, LEVEL_C_DATA, map_texture_id, 1.0f, 16, 16);
     
-    GLuint player_texture_id = Utility::load_texture(SPRITESHEET_FILEPATH);
+    GLuint player_texture_id = Utility::load_texture(SPRITESHEET_C_FILEPATH);
     
     // Load font texture for health display
     m_font_texture_id = Utility::load_texture("assets/font1.png");
 
     // Load projectile texture and verify it loaded correctly
-    GLuint projectile_texture_id = Utility::load_texture(PROJECTILE_FILEPATH);
+    GLuint projectile_texture_id = Utility::load_texture(PROJECTILE_C_FILEPATH);
     if (projectile_texture_id == 0) {
-        std::cout << "ERROR: Failed to load projectile texture from " << PROJECTILE_FILEPATH << std::endl;
+        std::cout << "ERROR: Failed to load projectile texture from " << PROJECTILE_C_FILEPATH << std::endl;
     } else {
         std::cout << "Successfully loaded projectile texture with ID: " << projectile_texture_id << std::endl;
     }
 
     int player_walking_animation[4][7] =
     {
-        { 33, 34, 35, 36, 37, 38, 39 },  // Left (row 3, frames 2-8)
-        { 22, 23, 24, 25, 26, 27, 28},  // Right (row 2, frames 2-8)
+          // Left (row 3, frames 2-8)
+        { 22, 23, 24, 25, 26, 27, 28},
+        { 33, 34, 35, 36, 37, 38, 39 },// Right (row 2, frames 2-8)
         { 11, 12, 13, 14, 15, 16, 17 },   // Up (row 1, frames 2-8)
         { 0, 1, 2, 3, 4, 5, 6 }          // Down (row 0, frames 0-6, unchanged)
     };
+
     // Remove gravity for top-down movement
     glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -100,27 +102,29 @@ void LevelA::initialise()
     
     /**
      Enemies' stuff */
-    GLuint enemy_texture_id = Utility::load_texture(ENEMY_FILEPATH);
+    GLuint enemy_texture_id = Utility::load_texture(ENEMY_C_FILEPATH);
 
-    m_game_state.enemies = new Entity[ENEMY_COUNT];
+    m_game_state.enemies = new Entity[ENEMY_C_COUNT];
 
-    for (int i = 0; i < ENEMY_COUNT; i++)
+    for (int i = 0; i < ENEMY_C_COUNT; i++)
     {
-        m_game_state.enemies[i] = Entity(enemy_texture_id, 1.0f, 1.0f, 1.0f, ENEMY, GUARD, IDLE);
-        m_game_state.enemies[i].set_health(2);  // Set enemy health
+        m_game_state.enemies[i] = Entity(enemy_texture_id, 1.0f, 1.0f, 1.0f, ENEMY, BOSS2, IDLE);
+        m_game_state.enemies[i].set_health(10);  // Set enemy health
         m_game_state.enemies[i].set_scene(this);
     }
 
     // Position the enemies in different parts of the map
     m_game_state.enemies[0].set_position(glm::vec3(8.0f, -5.0f, 0.0f));
     m_game_state.enemies[1].set_position(glm::vec3(3.0f, -10.0f, 0.0f));
-    m_game_state.enemies[2].set_position(glm::vec3(10.0f, -10.0f, 0.0f));
-
+    m_game_state.enemies[2].set_position(glm::vec3(4.0f, -8.0f, 0.0f));
+   
+   
     // Set movement and acceleration
     for (int i = 0; i < ENEMY_COUNT; i++) {
-        m_game_state.enemies[i].set_movement(glm::vec3(0.0f));
-        m_game_state.enemies[i].set_acceleration(glm::vec3(0.0f, 0.0f, 0.0f));
-    }  // Remove gravity for enemies too
+        m_game_state.enemies[i].set_movement(glm::vec3(1.0f,0.0f,0.0f));
+    }
+
+    
 
     /**
      BGM and SFX
@@ -134,13 +138,12 @@ void LevelA::initialise()
     m_game_state.jump_sfx = Mix_LoadWAV("assets/bounce.wav");
 }
 
-void LevelA::update(float delta_time)
+void LevelC::update(float delta_time)
 {
-    m_game_state.player->update(delta_time, m_game_state.player, m_game_state.enemies, ENEMY_COUNT, m_game_state.map);
+    m_game_state.player->update(delta_time, m_game_state.player, m_game_state.enemies, ENEMY_C_COUNT, m_game_state.map);
     
-    for (int i = 0; i < ENEMY_COUNT; i++)
+    for (int i = 0; i < ENEMY_C_COUNT; i++)
     {
-        Entity* enemy = &m_game_state.enemies[i];
         m_game_state.enemies[i].update(delta_time, m_game_state.player, NULL, NULL, m_game_state.map);
        
         
@@ -160,7 +163,7 @@ void LevelA::update(float delta_time)
         }
         
         // Check for collisions with enemies
-        for (int j = 0; j < ENEMY_COUNT; j++)
+        for (int j = 0; j < ENEMY_C_COUNT; j++)
         {
             if (projectile->check_collision(&m_game_state.enemies[j]))
             {
@@ -188,9 +191,9 @@ void LevelA::update(float delta_time)
         
     }
 }
-bool LevelA::is_completed() {
+bool LevelC::is_completed() {
     // For example, check if player reached a certain position
-    for (int i = 0; i < ENEMY_COUNT; i++) {
+    for (int i = 0; i < ENEMY_C_COUNT; i++) {
         if (m_game_state.enemies[i].is_active()) {
             return false;
         }
@@ -198,13 +201,13 @@ bool LevelA::is_completed() {
     return true;
 }
 
-void LevelA::render(ShaderProgram *g_shader_program)
+void LevelC::render(ShaderProgram *g_shader_program)
 {
     m_game_state.map->render(g_shader_program);
     m_game_state.player->render(g_shader_program);
     m_game_state.player->render_health_bar(g_shader_program, m_font_texture_id);
     
-    for (int i = 0; i < ENEMY_COUNT; i++) {
+    for (int i = 0; i < ENEMY_C_COUNT; i++) {
         if(m_game_state.enemies[i].is_active())
         {
             m_game_state.enemies[i].render(g_shader_program);
@@ -219,7 +222,7 @@ void LevelA::render(ShaderProgram *g_shader_program)
     }
 }
 
-void LevelA::shoot_projectile()
+void LevelC::shoot_projectile()
 {
     if (m_game_state.projectiles.size() < 100) {
         // Create projectile on the heap with projectile texture
