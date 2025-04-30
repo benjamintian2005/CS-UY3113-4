@@ -172,8 +172,12 @@ void process_input()
                         break;
                     case SDLK_SPACE:
                         // Attack with spacebar
-                        if (g_current_scene != g_menu_scene) {
+                        if (g_current_scene != g_menu_scene && g_current_scene != g_game_over_win &&
+                            g_current_scene != g_game_over_lose) {
+                            
                             g_current_scene->shoot_projectile();
+                            Mix_PlayChannel(-1, g_current_scene->get_state().pew_sfx, 0);
+
                         }
                         break;
                         
@@ -256,15 +260,18 @@ void update()
             else
             {
                 if (g_current_scene == g_level_a && ((LevelA*)g_current_scene)->is_completed()) {
-                    
-                    switch_to_scene(g_level_b);  // Move to Level B
-                }
-                else if (g_current_scene == g_level_b && ((LevelB*)g_current_scene)->is_completed()) {
-                    switch_to_scene(g_level_c);
+                    Mix_PlayChannel(-1, g_current_scene->get_state().switch_sfx, 0);
+
+                    switch_to_scene(g_level_c);  // Move to Level B
                 }
                 else if (g_current_scene == g_level_c && ((LevelC*)g_current_scene)->is_completed()) {
+                    Mix_PlayChannel(-1, g_current_scene->get_state().switch_sfx, 0);
+
+                    switch_to_scene(g_level_b);
+                }
+                else if (g_current_scene == g_level_b && ((LevelB*)g_current_scene)->is_completed()) {
                     // Game finished - back to menu or show victory screen
-                   
+                    Mix_PlayChannel(-1, g_current_scene->get_state().win_sfx, 0);
                     switch_to_scene(g_game_over_win);
                 }
             }

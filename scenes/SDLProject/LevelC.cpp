@@ -43,7 +43,7 @@ LevelC::~LevelC()
     }
     m_game_state.projectiles.clear();
     
-    Mix_FreeChunk(m_game_state.jump_sfx);
+    Mix_FreeChunk(m_game_state.pew_sfx);
     Mix_FreeMusic(m_game_state.bgm);
 }
 
@@ -135,7 +135,9 @@ void LevelC::initialise()
     Mix_PlayMusic(m_game_state.bgm, -1);
     Mix_VolumeMusic(0.0f);
     
-    m_game_state.jump_sfx = Mix_LoadWAV("assets/bounce.wav");
+    m_game_state.pew_sfx = Mix_LoadWAV("assets/bounce.wav");
+    m_game_state.win_sfx =Mix_LoadWAV("assets/yay.mp3");
+
 }
 
 void LevelC::update(float delta_time)

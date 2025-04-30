@@ -43,7 +43,8 @@ LevelA::~LevelA()
     }
     m_game_state.projectiles.clear();
     
-    Mix_FreeChunk(m_game_state.jump_sfx);
+    Mix_FreeChunk(m_game_state.pew_sfx);
+    
     Mix_FreeMusic(m_game_state.bgm);
 }
 
@@ -127,11 +128,15 @@ void LevelA::initialise()
      */
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096);
     
-    m_game_state.bgm = Mix_LoadMUS("assets/dooblydoo.mp3");
+    m_game_state.bgm = Mix_LoadMUS("assets/scaryloop.mp3");
     Mix_PlayMusic(m_game_state.bgm, -1);
-    Mix_VolumeMusic(0.0f);
+    Mix_VolumeMusic(100.0f);
     
-    m_game_state.jump_sfx = Mix_LoadWAV("assets/bounce.wav");
+    m_game_state.pew_sfx = Mix_LoadWAV("assets/pew.mp3");
+    m_game_state.switch_sfx = Mix_LoadWAV("assets/bruh.mp3");
+    m_game_state.win_sfx =Mix_LoadWAV("assets/yay.mp3");
+
+
 }
 
 void LevelA::update(float delta_time)

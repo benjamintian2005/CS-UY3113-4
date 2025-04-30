@@ -104,7 +104,7 @@ void Entity::ai_boss1(Entity *player)
         
         if (distance > 2.0f) {
             // Speed up when far away (>6.0f)
-            current_speed_multiplier = 10.0f;
+            current_speed_multiplier = 7.5f;
         } else if (distance < 1.5f) {
             // Slow down when very close (<1.5f)
             current_speed_multiplier = 0.5f;
